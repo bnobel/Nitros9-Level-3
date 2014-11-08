@@ -1,0 +1,18 @@
+  Files included here
+  read.me        this file
+  Level3.doc     documentation file for Level III
+  sfree          Level III system memory free utility.  Copy to /DD/CMDS
+  OS9p1.L3.122   Level III specific version of OS9p1
+  os9p2.122m     Minor change to OS9p2 to go along with the v1.22m OS9p1.
+  NitrOS9.L3     'magic' module for LIII
+  Clock.L3.*     many many different clocks for Level III
+                 see 'readme.clock'
+  readme.clock   description of what the different clock modules are.
+  IOMan.L3       Level III IO Manager
+  _end.L3        another 'magic' modulefor LIII
+  winfo.lzh      updated WInfo program for Level III.  Will work on old
+                 systems (stock or NitrOS-9), too!
+  lha            lha 211c.  Copy to /DD/CMDS
+  xlh            companion program. copy to /DD/CMDS.
+  smap           system memory map utility, written by Kevin Darling.
+                    copy to /DD/CMDS.
