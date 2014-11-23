@@ -6,7 +6,8 @@
          tfr   a,cc
          rts	
 L006C    jmp   [<-(D.SWI3-D.XSWI3),x]    (-$10) (Jmp to 2ndary vector)
-start    ldq   #$01001F00         leay  <start+2,pc         tfm   y,d+         std   <D.CCStk         lda   #$01         std   <D.Tasks         addb  #$20         std   <D.TskIPt         clrb           inca           std   <D.BlkMap         addb  #$40         std   <D.BlkMap+2         clrb           inca           std   <D.SysDis         inca                   set user dispatch table to $0400
+
+* Let’s start by initializing system pagestart    ldq   #$01001F00       start address to clear & # bytes to clear         leay  <start+2,pc      point to 0         tfm   y,d+         std   <D.CCStk         set pointer to top of global memory to $2000         lda   #$01             set task user table to $0100         std   <D.Tasks         addb  #$20             set task image table to $0120         std   <D.TskIPt         clrb                   set memory block map to $0200         inca           std   <D.BlkMap         addb  #$40             set second block map to $0240         std   <D.BlkMap+2         clrb                   set system service dispatch table to $0300         inca         std   <D.SysDis         inca                   set user dispatch table to $0400
          std   <D.UsrDis
          inca                   set process descriptor block to $0500
          std   <D.PrcDBT
