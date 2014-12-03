@@ -3,6 +3,7 @@
 
 * Disassembled 2014/10/29 16:04:46 by Disasm v1.5 (C) 1988 by RML
 Level    equ   2
+H6309    equ   1
 
          ifp1
          use   /dd/defs/os9defs
