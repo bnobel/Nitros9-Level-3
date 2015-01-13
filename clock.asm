@@ -10,7 +10,7 @@ rev      equ   4
 
          mod   eom,name,tylg,atrv,start,size
 
-size     equ   65360
+size     equ   $ff50
 
 name     fcs   /Clock/
          fcb   $0A
@@ -25,6 +25,12 @@ l0013    fcb   F$Time
          fdb   $0207
          fcb   $80
 
+*---------------------------------------------------------
+* IRQ Handling starts here.
+*
+* Caveat: There may not be a stack at this point, so avoid using one.
+*         Stack is set up by the kernel between here and SvcVIRQ.
+*
 L0020    lda   >$FF92              get GIME IRQ status
          ora   <D.IRQS
          sta   <D.IRQS
@@ -41,6 +47,16 @@ L0035    leax  >L0121,pc           if not clock IRQ, just poll IRQ source
 L003C    stx   <D.SvcIRQ
          jmp   [>D.XIRQ]           chain through kernel to continue IRQ
 
+*------------------------------------------------------------
+*
+* IRQ handling re-enters here on VSYNC IRQ.
+*
+* - Count down VIRQ timers, mark ones that are done
+* - Call DoPoll/DoToggle to service VIRQs and IRQs and reset GIME
+* - Call Keyboard scan
+* - Update time variables
+* - At end of minute, check alarm
+*
 L0042    ldb   >$0643
          clra  
          pshs  b,a
@@ -138,6 +154,13 @@ L0116    ldx   >$1017
          jsr   ,x
 L011D    jmp   [>D.Clock]
 
+*------------------------------------------------------------
+* Interrupt polling and GIME reset code
+*
+
+*
+* Call [D.Poll] until all interrupts have been handled
+*
 L0121    lda   >$0643
          ldb   >$0645
          pshs  b,a
@@ -149,6 +172,9 @@ L0129    jsr   [>D.Poll]
          stb   >$0645
          std   >$FFA1
          andcc #$AF
+*
+* Reset GIME to avoid missed IRQs
+*
 L013E    lda   #$FE
          anda  <D.IRQS
          sta   <D.IRQS
@@ -161,8 +187,8 @@ L013E    lda   #$FE
          clrb  
          rts   
 
-L0154    ldx   >$000B,pcr
-         ldy   #$0028
+L0154    ldx   >M$Mem,pc
+         ldy   #D.Time
          ldb   #$0B
          bsr   L016D
          bsr   L016D
@@ -190,6 +216,10 @@ L016F    stb   $01,x
          sta   ,y+
          rts   
 
+*------------------------------------------------------------
+*
+* Handle F$VIRQ system call
+*
 F.VIRQ   pshs  cc
          orcc  #IntMasks
          ldy   <D.CLTb
@@ -200,6 +230,7 @@ F.VIRQ   pshs  cc
          bra   L019C
 
          leay  $04,y
+* v3.3.0 has next line as ‘LDX ,Y++’ *****************
 L019C    ldx   ,y
          beq   L01A9
          decb  
@@ -270,6 +301,9 @@ L021E    ldy   #$0006
 L0222    os9   F$Move   
          rts   
 
+*
+* F$STime
+*
 F.STime  ldx   <D.Proc
          lda   P$Task,x
          ldx   R$X,u
@@ -280,8 +314,8 @@ F.STime  ldx   <D.Proc
          sta   <D.Tick
          pshs  cc
          orcc  #IntMasks
-         ldy   #$002E
-         ldx   >$000B,pc
+         ldy   #D.Time+6
+         ldx   >M$Mem,pc
          clrb  
          bsr   L0254
          bsr   L0254
@@ -293,17 +327,17 @@ F.STime  ldx   <D.Proc
          clrb  
          rts   
 
-L0254    clr   ,-s
-         lda   ,-y
-L0258    suba  #$0A
+L0254    clr   ,-s           create variable for tens gigit
+         lda   ,-y           get current value
+L0258    suba  #$0A          get tens digit on stack, ones digit in A
          bcs   L0260
          inc   ,s
          bra   L0258
 
 L0260    adda  #$0A
-         stb   $01,x
+         stb   $01,x         get clock address
          incb  
-         sta   ,x
+         sta   ,x            store ones digit
          stb   $01,x
          incb  
          puls  a
@@ -342,7 +376,9 @@ start    ldx   #$FF00         point to PIA0
          ora   #$08
          sta   <D.IRQER
          sta   >$FF92
-         ldx   >$000B,pc
+
+* Disto 4-N-1 RTC specific Init
+         ldx   >M$Mem,pc
          ldd   #$010F
          stb   $01,x
          sta   ,x
